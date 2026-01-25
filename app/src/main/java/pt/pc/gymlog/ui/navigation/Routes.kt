@@ -9,7 +9,9 @@ sealed class Route(val path: String) {
     data object Me : Route("me")                   // Meu
 
     // Sub-páginas
-    data object Today : Route("today")             // Treino do dia (abre a partir do plano)
+    data object Today : Route("today/{day}") {
+        fun create(day: Int) = "today/$day"
+    }
 
     data object HistoryDetail : Route("history_detail/{workoutId}") {
         fun create(workoutId: Long) = "history_detail/$workoutId"

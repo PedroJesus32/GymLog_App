@@ -3,6 +3,8 @@ package pt.pc.gymlog.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,17 +31,26 @@ fun AppNav(
         composable(Route.Plan.path) {
             pt.pc.gymlog.ui.screens.plan.PlanScreen(
                 vm = vm,
-                onOpenDay = { _ ->
-                    navController.navigate(Route.Today.path) { launchSingleTop = true }
+                onOpenDay = { day ->
+                    navController.navigate(Route.Today.create(day)) { launchSingleTop = true }
                 }
             )
         }
 
+
         // Sub-página: Treino do dia
-        composable(Route.Today.path) {
+        composable(
+            route = Route.Today.path,
+            arguments = listOf(navArgument("day") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val day = backStackEntry.arguments?.getInt("day") ?: 1
+
             TodayScreen(
                 vm = vm,
-                onGoHistory = { navController.navigate(Route.Report.path) { launchSingleTop = true } }
+                day = day,
+                onGoReport = {
+                    navController.navigate(Route.Report.path) { launchSingleTop = true }
+                }
             )
         }
 
@@ -71,8 +82,9 @@ fun AppNav(
                 workoutId = id,
                 onBack = { navController.popBackStack() },
                 onRepeatToday = {
-                    vm.repeatWorkoutFromHistory(id)
-                    navController.navigate(Route.Today.path) { launchSingleTop = true }
+                    vm.repeatWorkoutFromHistory(historyId = id, targetDay = vm.currentDay)
+                    navController.navigate(Route.Today.create(vm.currentDay)) { launchSingleTop = true }
+
                 }
             )
         }

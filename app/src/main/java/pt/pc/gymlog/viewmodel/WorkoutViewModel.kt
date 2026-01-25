@@ -48,24 +48,55 @@ class WorkoutViewModel : ViewModel() {
     var sets by mutableStateOf<List<SetEntryUi>>(emptyList())
         private set
 
-    fun saveTodayWorkout(dateLabel: String) {
-        // Exige pelo menos 1 exercício e 1 série (podes relaxar isto se quiseres)
-        if (todayExerciseIds.isEmpty() || sets.isEmpty()) return
+    // dia atual aberto (para "Repetir treino hoje" saber onde meter)
+    var currentDay by mutableStateOf(1)
+        private set
 
-        val selectedExercises = exercises.filter { it.id in todayExerciseIds }
+    var unlockedMaxDay by mutableStateOf(1)
+        private set
 
+    fun unlockNextDay(currentDay: Int) {
+        if (currentDay >= unlockedMaxDay) unlockedMaxDay = currentDay + 1
+    }
+
+
+    // Estado por dia
+    private var todayExerciseIdsByDay by mutableStateOf<Map<Int, List<Long>>>(emptyMap())
+    private var setsByDay by mutableStateOf<Map<Int, List<SetEntryUi>>>(emptyMap())
+
+    fun setDay(day: Int) {
+        currentDay = day
+    }
+
+
+    fun todayExerciseIds(day: Int): List<Long> = todayExerciseIdsByDay[day] ?: emptyList()
+
+    fun sets(day: Int): List<SetEntryUi> = setsByDay[day] ?: emptyList()
+
+
+    fun saveTodayWorkout(day: Int, dateLabel: String) {
+        val ids = todayExerciseIds(day)
+        val daySets = sets(day)
+
+        if (ids.isEmpty() || daySets.isEmpty()) return
+
+        val selectedExercises = exercises.filter { it.id in ids }
         val nextId = (history.maxOfOrNull { it.id } ?: 0L) + 1L
+
         history = history + WorkoutHistoryEntryUi(
             id = nextId,
-            dateLabel = dateLabel,
+            dateLabel = "$dateLabel • Dia $day",
             exercisesSnapshot = selectedExercises,
-            setsSnapshot = sets
+            setsSnapshot = daySets
         )
 
-        // limpar o treino de hoje
-        todayExerciseIds = emptyList()
-        sets = emptyList()
+        // limpar treino desse dia
+        todayExerciseIdsByDay = todayExerciseIdsByDay - day
+        setsByDay = setsByDay - day
+
+        unlockNextDay(day)
     }
+
 
     fun addExercise(name: String, muscleGroup: String?, notes: String?) {
         val nextId = (exercises.maxOfOrNull { it.id } ?: 0L) + 1L
@@ -78,49 +109,58 @@ class WorkoutViewModel : ViewModel() {
 
     fun deleteExercise(id: Long) {
         exercises = exercises.filterNot { it.id == id }
-        todayExerciseIds = todayExerciseIds.filterNot { it == id }
-        sets = sets.filterNot { it.exerciseId == id }
+
+        todayExerciseIdsByDay = todayExerciseIdsByDay.mapValues { (_, list) ->
+            list.filterNot { it == id }
+        }.filterValues { it.isNotEmpty() }
+
+        setsByDay = setsByDay.mapValues { (_, list) ->
+            list.filterNot { it.exerciseId == id }
+        }.filterValues { it.isNotEmpty() }
     }
 
-    fun addToToday(exerciseId: Long) {
-        if (exerciseId !in todayExerciseIds) {
-            todayExerciseIds = todayExerciseIds + exerciseId
+
+    fun addToToday(day: Int, exerciseId: Long) {
+        val list = todayExerciseIds(day)
+        if (exerciseId !in list) {
+            todayExerciseIdsByDay = todayExerciseIdsByDay + (day to (list + exerciseId))
         }
     }
 
-    fun addSet(exerciseId: Long, weight: Double, reps: Int) {
-        val nextId = (sets.maxOfOrNull { it.id } ?: 0L) + 1L
-        val nextSetNumber = sets.count { it.exerciseId == exerciseId } + 1
-        sets = sets + SetEntryUi(nextId, exerciseId, nextSetNumber, weight, reps)
+    fun addSet(day: Int, exerciseId: Long, weight: Double, reps: Int) {
+        val daySets = sets(day)
+        val nextId = ((setsByDay.values.flatten().maxOfOrNull { it.id }) ?: 0L) + 1L
+        val nextSetNumber = daySets.count { it.exerciseId == exerciseId } + 1
+
+        setsByDay = setsByDay + (day to (daySets + SetEntryUi(nextId, exerciseId, nextSetNumber, weight, reps)))
     }
 
-    fun deleteSet(setId: Long) {
-        sets = sets.filterNot { it.id == setId }
+    fun deleteSet(day: Int, setId: Long) {
+        setsByDay = setsByDay + (day to sets(day).filterNot { it.id == setId })
     }
 
-    fun removeFromToday(exerciseId: Long) {
-        todayExerciseIds = todayExerciseIds.filterNot { it == exerciseId }
-        sets = sets.filterNot { it.exerciseId == exerciseId }
+    fun removeFromToday(day: Int, exerciseId: Long) {
+        todayExerciseIdsByDay = todayExerciseIdsByDay + (day to todayExerciseIds(day).filterNot { it == exerciseId })
+        setsByDay = setsByDay + (day to sets(day).filterNot { it.exerciseId == exerciseId })
     }
 
     fun getWorkoutFromHistory(id: Long): WorkoutHistoryEntryUi? {
         return history.firstOrNull { it.id == id }
     }
 
-    fun repeatWorkoutFromHistory(id: Long) {
-        val entry = getWorkoutFromHistory(id) ?: return
+    fun repeatWorkoutFromHistory(historyId: Long, targetDay: Int) {
+        val entry = history.firstOrNull { it.id == historyId } ?: return
 
-        // garantir que exercícios existem na lista atual (caso tenhas apagado algum)
         val existingIds = exercises.map { it.id }.toSet()
         val missing = entry.exercisesSnapshot.filter { it.id !in existingIds }
         if (missing.isNotEmpty()) {
             exercises = exercises + missing
         }
 
-        todayExerciseIds = entry.exercisesSnapshot.map { it.id }
+        todayExerciseIdsByDay = todayExerciseIdsByDay + (targetDay to entry.exercisesSnapshot.map { it.id })
 
-        // recriar séries com IDs novos e setNumber correto
-        var nextSetId = (sets.maxOfOrNull { it.id } ?: 0L) + 1L
+        // recriar sets com IDs novos
+        var nextSetId = ((setsByDay.values.flatten().maxOfOrNull { it.id }) ?: 0L) + 1L
         val rebuilt = entry.setsSnapshot
             .groupBy { it.exerciseId }
             .flatMap { (exerciseId, list) ->
@@ -135,8 +175,9 @@ class WorkoutViewModel : ViewModel() {
                 }
             }
 
-        sets = rebuilt
+        setsByDay = setsByDay + (targetDay to rebuilt)
     }
+
 
 
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,11 +18,18 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
+fun TodayScreen(
+
+    vm: WorkoutViewModel,
+    day: Int,
+    onGoReport: () -> Unit
+) {
+
+    LaunchedEffect(day) { vm.setDay(day) }
 
     val allExercises = vm.exercises
-    val selectedExerciseIds = vm.todayExerciseIds
-    val sets = vm.sets
+    val selectedExerciseIds = vm.todayExerciseIds(day)
+    val sets = vm.sets(day)
 
     var showPickExercise by remember { mutableStateOf(false) }
     var showAddSet by remember { mutableStateOf(false) }
@@ -74,7 +82,7 @@ fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                TextButton(onClick = { vm.removeFromToday(ex.id) }) {
+                                TextButton(onClick = { vm.removeFromToday(day,ex.id) }) {
                                     Text("Remover")
                                 }
                             }
@@ -95,7 +103,7 @@ fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
                                             "Set ${s.setNumber}: ${s.weight} kg • ${s.reps} reps",
                                             modifier = Modifier.weight(1f)
                                         )
-                                        TextButton(onClick = { vm.deleteSet(s.id) }) {
+                                        TextButton(onClick = { vm.deleteSet(day,s.id) }) {
                                             Text("Apagar")
                                         }
                                     }
@@ -120,8 +128,8 @@ fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     Button(
                         onClick = {
-                            vm.saveTodayWorkout("Treino de Hoje • $todayStr")
-                            onGoHistory()
+                            vm.saveTodayWorkout(day, todayStr)
+                            onGoReport()
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -142,7 +150,7 @@ fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
                         val disabled = ex.id in selectedExerciseIds
                         Button(
                             onClick = {
-                                vm.addToToday(ex.id)
+                                vm.addToToday(day,ex.id)
                                 showPickExercise = false
                             },
                             enabled = !disabled,
@@ -163,7 +171,7 @@ fun TodayScreen(vm: WorkoutViewModel, onGoHistory: () -> Unit) {
         AddSetDialog(
             onDismiss = { showAddSet = false },
             onSave = { weight, reps ->
-                vm.addSet(addSetExerciseId!!, weight, reps)
+                vm.addSet(day, addSetExerciseId!!, weight, reps)
                 showAddSet = false
             }
         )
