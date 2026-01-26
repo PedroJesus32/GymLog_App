@@ -13,6 +13,9 @@ import pt.pc.gymlog.ui.screens.history.HistoryScreen
 import pt.pc.gymlog.ui.screens.history.WorkoutDetailsScreen
 import pt.pc.gymlog.ui.screens.today.TodayScreen
 import pt.pc.gymlog.viewmodel.WorkoutViewModel
+import pt.pc.gymlog.ui.screens.me.MeScreen
+import pt.pc.gymlog.ui.screens.me.ProfileScreen
+import pt.pc.gymlog.ui.screens.me.SettingsScreen
 
 @Composable
 fun AppNav(
@@ -26,6 +29,19 @@ fun AppNav(
         startDestination = Route.Plan.path,
         modifier = modifier
     ) {
+
+        composable(Route.Profile.path) {
+            ProfileScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Route.Settings.path) {
+            SettingsScreen(
+                vm = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+
 
         // TAB: Treino (Plano)
         composable(Route.Plan.path) {
@@ -61,7 +77,12 @@ fun AppNav(
         composable(Route.Customize.path) { pt.pc.gymlog.ui.screens.customize.CustomizeScreen() }
 
         // TAB: Meu
-        composable(Route.Me.path) { pt.pc.gymlog.ui.screens.me.MeScreen() }
+        composable(Route.Me.path) {
+            MeScreen(
+                onOpenProfile = { navController.navigate(Route.Profile.path) { launchSingleTop = true } },
+                onOpenSettings = { navController.navigate(Route.Settings.path) { launchSingleTop = true } }
+            )
+        }
 
         // TAB: Relatório (inclui Histórico)
         composable(Route.Report.path) {

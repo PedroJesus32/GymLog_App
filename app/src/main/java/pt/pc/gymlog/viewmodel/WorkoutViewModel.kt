@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 
 
+
 data class WorkoutHistoryEntryUi(
     val id: Long,
     val dateLabel: String,
@@ -47,6 +48,43 @@ class WorkoutViewModel : ViewModel() {
 
     var sets by mutableStateOf<List<SetEntryUi>>(emptyList())
         private set
+
+    enum class WeekDayUi(val label: String) {
+        SEG("Segunda"),
+        TER("Terça"),
+        QUA("Quarta"),
+        QUI("Quinta"),
+        SEX("Sexta"),
+        SAB("Sábado"),
+        DOM("Domingo")
+    }
+
+    enum class UnitSystemUi(val label: String) {
+        KG("kg"),
+        LB("lb")
+    }
+
+    data class UserSettingsUi(
+        val workoutsPerWeek: Int = 4,
+        val restDay: WeekDayUi = WeekDayUi.DOM,
+        val unitSystem: UnitSystemUi = UnitSystemUi.KG
+    )
+
+    var userSettings by mutableStateOf(UserSettingsUi())
+        private set
+
+    fun updateSettings(
+        workoutsPerWeek: Int,
+        restDay: WeekDayUi,
+        unitSystem: UnitSystemUi
+    ) {
+        userSettings = UserSettingsUi(
+            workoutsPerWeek = workoutsPerWeek,
+            restDay = restDay,
+            unitSystem = unitSystem
+        )
+    }
+
 
     // dia atual aberto (para "Repetir treino hoje" saber onde meter)
     var currentDay by mutableStateOf(1)

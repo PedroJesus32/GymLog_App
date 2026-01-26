@@ -2,6 +2,9 @@ package pt.pc.gymlog.ui.navigation
 import pt.pc.gymlog.ui.navigation.Route
 sealed class Route(val path: String) {
     // Tabs (BottomBar)
+
+    data object Profile : Route("profile")
+    data object Settings : Route("settings")
     data object Plan : Route("plan")               // Treino (Plano)
     data object Customize : Route("customize")     // Personalizar
     data object Exercises : Route("exercises")     // Exercícios
