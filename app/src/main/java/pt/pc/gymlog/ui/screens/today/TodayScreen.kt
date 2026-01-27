@@ -1,5 +1,6 @@
 package pt.pc.gymlog.ui.screens.today
 
+import pt.pc.gymlog.viewmodel.PlanDayType
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,17 +20,29 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
-
     vm: WorkoutViewModel,
     day: Int,
-    onGoReport: () -> Unit
+    onGoReport: () -> Unit,
+    onBackToPlan: () -> Unit
 ) {
 
-    LaunchedEffect(day) { vm.setDay(day) }
+
+
+
+    LaunchedEffect(day) {
+        vm.openDay(
+            day = day
+        )
+    }
 
     val allExercises = vm.exercises
     val selectedExerciseIds = vm.todayExerciseIds(day)
     val sets = vm.sets(day)
+
+    val plan = vm.planDays.firstOrNull { it.dayNumber == day }
+    val isRestDay = plan?.type == PlanDayType.REST
+    val focusTitle = plan?.title ?: ""
+
 
     var showPickExercise by remember { mutableStateOf(false) }
     var showAddSet by remember { mutableStateOf(false) }
@@ -40,9 +53,11 @@ fun TodayScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Treino de Hoje • $todayStr") }) },
+        topBar = { TopAppBar(title = { Text("Treino • Dia $day • $focusTitle") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showPickExercise = true }) { Text("+") }
+            if (!isRestDay) {
+                FloatingActionButton(onClick = { showPickExercise = true }) { Text("+") }
+            }
         }
     ) { padding ->
 
@@ -59,9 +74,23 @@ fun TodayScreen(
             ) {
                 Text("Sem exercícios no treino de hoje.")
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = { showPickExercise = true }) {
-                    Text("Adicionar exercício")
+                if (isRestDay) {
+                    Button(
+                        onClick = {
+                            vm.unlockNextDay(day)
+                            onBackToPlan()
+                        }
+                    ) {
+                        Text("Terminar dia de descanso")
+                    }
+                } else {
+                    Button(onClick = { showPickExercise = true }) {
+                        Text("Adicionar exercício")
+                    }
                 }
+
+
+
             }
         } else {
             LazyColumn(

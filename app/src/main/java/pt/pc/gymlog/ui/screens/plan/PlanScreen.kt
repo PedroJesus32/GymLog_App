@@ -1,5 +1,9 @@
 package pt.pc.gymlog.ui.screens.plan
 
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.LaunchedEffect
+import pt.pc.gymlog.viewmodel.PlanDayType
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,26 +25,13 @@ fun PlanScreen(
     val unlockedMax = vm.unlockedMaxDay
 
     // Plano simples: repete Peito/Costas/Pernas/Descanso
-    fun focusForDay(day: Int): Pair<String, Boolean> {
-        return when ((day - 1) % 4) {
-            0 -> "Peito" to false
-            1 -> "Costas" to false
-            2 -> "Parte inferior do corpo" to false
-            else -> "Dia de Descanso" to true
-        }
+
+    val days = vm.planDays
+
+    LaunchedEffect(days.size) {
+        if (days.isEmpty()) vm.regeneratePlan()
     }
 
-    val days = (1..30).map { day ->
-        val (focus, isRest) = focusForDay(day)
-        val locked = day > unlockedMax
-        DayPlan(
-            day = day,
-            title = if (isRest) "Dia de Descanso" else "Dia $day",
-            focus = focus,
-            isRest = isRest,
-            locked = locked
-        )
-    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Treino") }) }
@@ -62,16 +53,26 @@ fun PlanScreen(
                         Text("Fortalecimento Muscular • 30 dias")
                         Spacer(Modifier.height(10.dp))
 
-                        val startDay = unlockedMax.coerceAtMost(30)
+                        val startDay = unlockedMax.coerceIn(1, 30)
                         Button(onClick = { onOpenDay(startDay) }) {
                             Text("Começar (Dia $startDay)")
                         }
+
                     }
                 }
             }
 
-            items(days, key = { it.day }) { item ->
-                Card {
+            items(days, key = { it.dayNumber }) { d ->
+
+                val done = d.dayNumber < unlockedMax
+                val locked = d.dayNumber > unlockedMax
+                val isCurrent = d.dayNumber == unlockedMax
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !locked) { onOpenDay(d.dayNumber) }
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -80,23 +81,19 @@ fun PlanScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(item.title, style = MaterialTheme.typography.titleMedium)
-                            Text(item.focus, style = MaterialTheme.typography.bodyMedium)
+                            Text("Dia ${d.dayNumber}", style = MaterialTheme.typography.titleMedium)
+                            Text(d.title, style = MaterialTheme.typography.bodyMedium)
                         }
 
-                        if (item.locked) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Bloqueado"
-                            )
-                        } else {
-                            TextButton(onClick = { onOpenDay(item.day) }) {
-                                Text("Abrir")
-                            }
+                        when {
+                            locked -> Icon(Icons.Default.Lock, contentDescription = "Bloqueado")
+                            isCurrent -> TextButton(onClick = { onOpenDay(d.dayNumber) }) { Text("Abrir") }
+                            done -> Icon(Icons.Default.CheckCircle, contentDescription = "Concluído")
                         }
                     }
                 }
             }
+
         }
     }
 }

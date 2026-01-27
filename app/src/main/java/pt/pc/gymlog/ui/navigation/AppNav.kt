@@ -55,20 +55,19 @@ fun AppNav(
 
 
         // Sub-página: Treino do dia
-        composable(
-            route = Route.Today.path,
-            arguments = listOf(navArgument("day") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val day = backStackEntry.arguments?.getInt("day") ?: 1
+        composable(Route.Today.path) { backStackEntry ->
+            val day = backStackEntry.arguments?.getString("day")?.toIntOrNull() ?: 1
 
             TodayScreen(
                 vm = vm,
                 day = day,
-                onGoReport = {
-                    navController.navigate(Route.Report.path) { launchSingleTop = true }
-                }
+                onGoReport = { navController.navigate(Route.Report.path) { launchSingleTop = true } },
+                onBackToPlan = { navController.navigate(Route.Plan.path) { launchSingleTop = true } }
             )
+
+
         }
+
 
         // TAB: Exercícios
         composable(Route.Exercises.path) { ExercisesScreen(vm) }

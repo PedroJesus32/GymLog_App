@@ -1,11 +1,18 @@
 package pt.pc.gymlog.viewmodel
 
+import kotlin.math.round
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 
+enum class PlanDayType { WORKOUT, REST }
 
+data class PlanDayUi(
+    val dayNumber: Int,
+    val type: PlanDayType,
+    val title: String
+)
 
 data class WorkoutHistoryEntryUi(
     val id: Long,
@@ -34,7 +41,9 @@ class WorkoutViewModel : ViewModel() {
     var exercises by mutableStateOf(
         listOf(
             ExerciseUi(1, "Supino", "Peito"),
-            ExerciseUi(2, "Agachamento", "Pernas")
+            ExerciseUi(2, "Agachamento", "Pernas"),
+            ExerciseUi(3, "Remada", "Costas"),
+            ExerciseUi(4, "Desenvolvimento", "Ombros")
         )
     )
         private set
@@ -85,6 +94,61 @@ class WorkoutViewModel : ViewModel() {
         )
     }
 
+    var planDays by mutableStateOf<List<PlanDayUi>>(emptyList())
+        private set
+
+    fun regeneratePlan(totalDays: Int = 30) {
+        val workouts = userSettings.workoutsPerWeek.coerceIn(1, 6)
+        val restCount = (7 - workouts).coerceIn(1, 6)
+
+        val mandatoryRest = weekDayToIndex(userSettings.restDay) // 0..6
+        val restIndices = buildRestIndices(mandatoryRest, restCount)
+
+        val split = listOf("Peito", "Costas", "Pernas", "Ombros/Braços")
+        var cursor = 0
+
+        val out = mutableListOf<PlanDayUi>()
+
+        for (day in 1..totalDays) {
+            val weekIdx = (day - 1) % 7 // Dia 1 = SEG (0)
+
+            if (weekIdx in restIndices) {
+                out += PlanDayUi(day, PlanDayType.REST, "Dia de Descanso")
+            } else {
+                val title = split[cursor % split.size]
+                cursor++
+                out += PlanDayUi(day, PlanDayType.WORKOUT, title)
+            }
+        }
+
+        planDays = out
+    }
+
+    private fun weekDayToIndex(d: WeekDayUi): Int = when (d) {
+        WeekDayUi.SEG -> 0
+        WeekDayUi.TER -> 1
+        WeekDayUi.QUA -> 2
+        WeekDayUi.QUI -> 3
+        WeekDayUi.SEX -> 4
+        WeekDayUi.SAB -> 5
+        WeekDayUi.DOM -> 6
+    }
+
+    private fun buildRestIndices(mandatory: Int, restCount: Int): Set<Int> {
+        val set = linkedSetOf<Int>()
+        set += mandatory
+
+        val step = 7.0 / restCount.toDouble()
+        var i = 1
+        while (set.size < restCount) {
+            var idx = ((mandatory + kotlin.math.round(i * step).toInt()) % 7 + 7) % 7
+            while (idx in set) idx = (idx + 1) % 7
+            set += idx
+            i++
+        }
+        return set
+    }
+
 
     // dia atual aberto (para "Repetir treino hoje" saber onde meter)
     var currentDay by mutableStateOf(1)
@@ -94,8 +158,14 @@ class WorkoutViewModel : ViewModel() {
         private set
 
     fun unlockNextDay(currentDay: Int) {
-        if (currentDay >= unlockedMaxDay) unlockedMaxDay = currentDay + 1
+        val next = (currentDay + 1).coerceAtMost(30)
+
+        // só aumenta, nunca diminui
+        if (next > unlockedMaxDay) {
+            unlockedMaxDay = next
+        }
     }
+
 
 
     // Estado por dia
@@ -105,6 +175,31 @@ class WorkoutViewModel : ViewModel() {
     fun setDay(day: Int) {
         currentDay = day
     }
+
+    fun openDay(day: Int) {
+        setDay(day)
+
+        // garante que o plano existe
+        if (planDays.isEmpty()) regeneratePlan()
+
+        val plan = planDays.firstOrNull { it.dayNumber == day }
+
+        // descanso: deixa vazio
+        if (plan == null || plan.type == PlanDayType.REST) {
+            todayExerciseIdsByDay = todayExerciseIdsByDay + (day to emptyList())
+            setsByDay = setsByDay + (day to emptyList())
+            return
+        }
+
+        // se já existe treino nesse dia, não sobrescreve
+        val existing = todayExerciseIdsByDay[day]
+        if (!existing.isNullOrEmpty()) return
+
+        val ids = recommendedForFocus(plan.title).map { it.id }.distinct()
+        todayExerciseIdsByDay = todayExerciseIdsByDay + (day to ids)
+        setsByDay = setsByDay + (day to emptyList())
+    }
+
 
 
     fun todayExerciseIds(day: Int): List<Long> = todayExerciseIdsByDay[day] ?: emptyList()
@@ -216,6 +311,28 @@ class WorkoutViewModel : ViewModel() {
         setsByDay = setsByDay + (targetDay to rebuilt)
     }
 
+
+    fun completeRestDay(day: Int) {
+        // desbloqueia o próximo dia (máx 30)
+        if (day >= unlockedMaxDay) {
+            unlockedMaxDay = (day + 1).coerceAtMost(30)
+        }
+    }
+
+    private fun recommendedForFocus(title: String): List<ExerciseUi> {
+        val t = title.lowercase()
+
+        fun byName(vararg names: String) =
+            exercises.filter { ex -> names.any { it.equals(ex.name, ignoreCase = true) } }
+
+        return when {
+            t.contains("peito") -> byName("Supino")
+            t.contains("costas") -> byName("Remada")
+            t.contains("pernas") || t.contains("inferior") -> byName("Agachamento")
+            t.contains("ombros") -> byName("Desenvolvimento")
+            else -> exercises.take(3)
+        }.ifEmpty { exercises.take(3) }
+    }
 
 
 }
