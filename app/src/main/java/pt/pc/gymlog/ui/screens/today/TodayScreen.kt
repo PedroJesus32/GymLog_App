@@ -152,19 +152,30 @@ fun TodayScreen(
                     }
                 }
 
-                // ✅ ESTE é o único botão "Guardar treino" (fora dos cards)
+                // ✅ Botão no fim da lista
                 item {
                     Spacer(Modifier.height(8.dp))
+
+                    val canFinishWorkout = !isRestDay && sets.isNotEmpty()
+
                     Button(
                         onClick = {
+                            // guardar no histórico
                             vm.saveTodayWorkout(day, todayStr)
-                            onGoReport()
+
+                            // desbloquear próximo dia
+                            vm.unlockNextDay(day)
+
+                            // voltar ao plano
+                            onBackToPlan()
                         },
+                        enabled = canFinishWorkout,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Guardar treino")
+                        Text(if (canFinishWorkout) "Concluir treino" else "Adicionar pelo menos 1 série")
                     }
                 }
+
             }
         } //aqui
     }
