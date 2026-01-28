@@ -16,6 +16,8 @@ import pt.pc.gymlog.viewmodel.WorkoutViewModel
 import pt.pc.gymlog.ui.screens.me.MeScreen
 import pt.pc.gymlog.ui.screens.me.ProfileScreen
 import pt.pc.gymlog.ui.screens.me.SettingsScreen
+import pt.pc.gymlog.ui.screens.me.GoalScreen
+import pt.pc.gymlog.ui.screens.me.FocusScreen
 
 @Composable
 fun AppNav(
@@ -29,10 +31,23 @@ fun AppNav(
         startDestination = Route.Plan.path,
         modifier = modifier
     ) {
-
         composable(Route.Profile.path) {
-            ProfileScreen(onBack = { navController.popBackStack() })
+            ProfileScreen(
+                vm = vm,
+                onBack = { navController.popBackStack() },
+                onOpenGoal = { navController.navigate(Route.Goal.path) },
+                onOpenFocus = { navController.navigate(Route.Focus.path) }
+            )
         }
+
+        composable(Route.Goal.path) {
+            GoalScreen(vm = vm, onBack = { navController.popBackStack() })
+        }
+        composable(Route.Focus.path) {
+            FocusScreen(vm = vm, onBack = { navController.popBackStack() })
+        }
+
+
 
         composable(Route.Settings.path) {
             SettingsScreen(
@@ -78,10 +93,11 @@ fun AppNav(
         // TAB: Meu
         composable(Route.Me.path) {
             MeScreen(
-                onOpenProfile = { navController.navigate(Route.Profile.path) { launchSingleTop = true } },
-                onOpenSettings = { navController.navigate(Route.Settings.path) { launchSingleTop = true } }
+                onOpenProfile = { navController.navigate(Route.Profile.path) },
+                onOpenSettings = { navController.navigate(Route.Settings.path) }
             )
         }
+
 
         // TAB: Relatório (inclui Histórico)
         composable(Route.Report.path) {
@@ -108,6 +124,21 @@ fun AppNav(
                 }
             )
         }
+
+        composable(Route.Goal.path) {
+            pt.pc.gymlog.ui.screens.me.GoalScreen(
+                vm = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Route.Focus.path) {
+            pt.pc.gymlog.ui.screens.me.FocusScreen(
+                vm = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
     }
 
 }

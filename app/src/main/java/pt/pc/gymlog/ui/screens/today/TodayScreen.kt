@@ -53,13 +53,21 @@ fun TodayScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Treino • Dia $day • $focusTitle") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Treino • Dia $day • $focusTitle") },
+                navigationIcon = {
+                    TextButton(onClick = onBackToPlan) { Text("Voltar") }
+                }
+            )
+        },
         floatingActionButton = {
             if (!isRestDay) {
                 FloatingActionButton(onClick = { showPickExercise = true }) { Text("+") }
             }
         }
-    ) { padding ->
+    )
+    { padding ->
 
         val selectedExercises = allExercises.filter { it.id in selectedExerciseIds }
 

@@ -36,6 +36,43 @@ data class SetEntryUi(
     val reps: Int
 )
 
+enum class GoalUi(val label: String) {
+    STRONGER("Ficar mais forte"),
+    MUSCLE("Ganhe massa muscular"),
+    LEAN("Fique magra e definida"),
+    LOSE_WEIGHT("Reduza o peso corporal"),
+    HEALTH("Melhore sua saúde e bem-estar"),
+    PERFORMANCE("Aumente seu desempenho esportivo")
+}
+
+enum class FocusAreaUi(val label: String) {
+    BACK("Costas"),
+    SHOULDERS("Ombros"),
+    ARMS("Braço"),
+    CHEST("Peito"),
+    ABS("Abdómen"),
+    GLUTES("Nádega"),
+    LEGS("Perna"),
+    FULL_BODY("Todo o corpo")
+}
+
+enum class GenderUi(val label: String) {
+    MALE("Masculino"),
+    FEMALE("Feminino"),
+}
+
+data class UserProfileUi(
+    val goal: GoalUi = GoalUi.STRONGER,
+    val focusAreas: Set<FocusAreaUi> = setOf(FocusAreaUi.FULL_BODY),
+    val oneRmSupinoKg: Int = 0,
+
+    // ✅ básicos (voltou o que tinhas antes)
+    val gender: GenderUi = GenderUi.MALE,
+    val currentWeightKg: Double = 0.0,
+    val targetWeightKg: Double = 0.0,
+    val heightCm: Double = 0.0
+)
+
 class WorkoutViewModel : ViewModel() {
 
     var exercises by mutableStateOf(
@@ -334,5 +371,46 @@ class WorkoutViewModel : ViewModel() {
         }.ifEmpty { exercises.take(3) }
     }
 
+    var userProfile by mutableStateOf(UserProfileUi())
+        private set
 
+    fun updateProfile(updated: UserProfileUi) {
+        userProfile = updated
+    }
+
+
+
+    fun updateGoal(goal: GoalUi) {
+        userProfile = userProfile.copy(goal = goal)
+    }
+
+    fun updateFocusAreas(areas: Set<FocusAreaUi>) {
+        // garante regra: se FULL_BODY está selecionado, fica sozinho
+        val normalized =
+            if (FocusAreaUi.FULL_BODY in areas) setOf(FocusAreaUi.FULL_BODY)
+            else if (areas.isEmpty()) setOf(FocusAreaUi.FULL_BODY)
+            else areas
+
+        userProfile = userProfile.copy(focusAreas = normalized)
+    }
+
+    fun updateOneRmSupinoKg(value: Int) {
+        userProfile = userProfile.copy(oneRmSupinoKg = value.coerceAtLeast(0))
+    }
+
+    fun updateGender(g: GenderUi) {
+        userProfile = userProfile.copy(gender = g)
+    }
+
+    fun updateCurrentWeightKg(value: Double) {
+        userProfile = userProfile.copy(currentWeightKg = value.coerceAtLeast(0.0))
+    }
+
+    fun updateTargetWeightKg(value: Double) {
+        userProfile = userProfile.copy(targetWeightKg = value.coerceAtLeast(0.0))
+    }
+
+    fun updateHeightCm(value: Double) {
+        userProfile = userProfile.copy(heightCm = value.coerceAtLeast(0.0))
+    }
 }
