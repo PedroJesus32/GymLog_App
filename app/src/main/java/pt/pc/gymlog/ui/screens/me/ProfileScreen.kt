@@ -1,5 +1,8 @@
 package pt.pc.gymlog.ui.screens.me
 
+import pt.pc.gymlog.ui.components.AppCard
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -17,12 +20,18 @@ fun ProfileScreen(
     vm: WorkoutViewModel,
     onBack: () -> Unit,
     onOpenGoal: () -> Unit,
-    onOpenFocus: () -> Unit
+    onOpenFocus: () -> Unit,
+    onOpenOneRm: () -> Unit
 ) {
     val profile = vm.userProfile
-
+    val focusText = profile.focusAreas.joinToString(", ") { it.label }
+        .ifBlank { "Todo o corpo" }
     var showOneRmDialog by remember { mutableStateOf(false) }
     var oneRmText by remember { mutableStateOf(profile.oneRmSupinoKg.toString()) }
+
+
+
+
 
     Scaffold(
         topBar = {
@@ -41,44 +50,30 @@ fun ProfileScreen(
         ) {
 
             // ✅ Meta (abre GoalScreen)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpenGoal() }
-            ) {
-                Column(Modifier.padding(14.dp)) {
-                    Text("Meta", style = MaterialTheme.typography.titleMedium)
-                    Text(profile.goal.label, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            // ✅ Meta
+            AppCard(
+                title = "Meta",
+                subtitle = profile.goal.label,
+                showChevron = true,
+                onClick = onOpenGoal
+            )
 
-            // ✅ Área de foco (abre FocusScreen)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpenFocus() }
-            ) {
-                val focusText = profile.focusAreas.joinToString(", ") { it.label }
-                Column(Modifier.padding(14.dp)) {
-                    Text("Área de foco", style = MaterialTheme.typography.titleMedium)
-                    Text(focusText.ifBlank { "Todo o corpo" }, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            // ✅ Área de foco
+            AppCard(
+                title = "Área de foco",
+                subtitle = focusText,
+                showChevron = true,
+                onClick = onOpenFocus
+            )
 
-            // ✅ 1RM (abre dialog para editar)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        oneRmText = profile.oneRmSupinoKg.toString()
-                        showOneRmDialog = true
-                    }
-            ) {
-                Column(Modifier.padding(14.dp)) {
-                    Text("Minha 1RM (Supino)", style = MaterialTheme.typography.titleMedium)
-                    Text("${profile.oneRmSupinoKg} kg", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            // ✅ 1RM
+            AppCard(
+                title = "Minha 1RM (Supino)",
+                subtitle = "${profile.oneRmSupinoKg} kg",
+                trailingText = "Editar",
+                showChevron = true,
+                onClick = onOpenOneRm
+            )
 
             // ✅ Info básica (voltou)
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -86,9 +81,9 @@ fun ProfileScreen(
                     Text("Informações básicas", style = MaterialTheme.typography.titleMedium)
 
                     Text("Género: ${profile.gender.label}")
-                    Text("Peso atual: ${profile.currentWeightKg} kg")
-                    Text("Meta de peso: ${profile.targetWeightKg} kg")
-                    Text("Altura: ${profile.heightCm} cm")
+                    Text("Peso atual: ${String.format("%.1f", profile.currentWeightKg)} kg")
+                    Text("Meta de peso: ${String.format("%.1f", profile.targetWeightKg)} kg")
+                    Text("Altura: ${String.format("%.0f", profile.heightCm)} cm")
                 }
             }
         }
@@ -120,4 +115,5 @@ fun ProfileScreen(
             }
         )
     }
+
 }

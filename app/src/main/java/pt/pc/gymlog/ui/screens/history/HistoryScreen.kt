@@ -13,50 +13,52 @@ import pt.pc.gymlog.viewmodel.WorkoutViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(vm: WorkoutViewModel, onOpenWorkout: (Long) -> Unit) {
-
-    val history = vm.history
-
     Scaffold(
         topBar = { TopAppBar(title = { Text("Histórico") }) }
     ) { padding ->
+        Box(Modifier.padding(padding).fillMaxSize()) {
+            HistoryContent(vm = vm, onOpenWorkout = onOpenWorkout)
+        }
+    }
+}
 
-        if (history.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Ainda não tens treinos guardados.")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(history, key = { it.id }) { entry ->
-                    Card(
-                        modifier = Modifier.clickable { onOpenWorkout(entry.id) }
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(entry.dateLabel, style = MaterialTheme.typography.titleMedium)
+@Composable
+fun HistoryContent(vm: WorkoutViewModel, onOpenWorkout: (Long) -> Unit) {
+    val history = vm.history
 
-                            val exCount = entry.exercisesSnapshot.size
-                            val setCount = entry.setsSnapshot.size
-                            Text("$exCount exercícios • $setCount séries")
+    if (history.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Ainda não tens treinos guardados.")
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(history, key = { it.id }) { entry ->
+                Card(
+                    modifier = Modifier.clickable { onOpenWorkout(entry.id) }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(entry.dateLabel, style = MaterialTheme.typography.titleMedium)
 
-                            Spacer(Modifier.height(8.dp))
+                        val exCount = entry.exercisesSnapshot.size
+                        val setCount = entry.setsSnapshot.size
+                        Text("$exCount exercícios • $setCount séries")
 
-                            entry.exercisesSnapshot.forEach { ex ->
-                                val exSets = entry.setsSnapshot.filter { it.exerciseId == ex.id }
-                                val best = exSets.maxByOrNull { it.weight }
-                                val bestText = best?.let { "máx ${it.weight}kg x ${it.reps}" } ?: "sem séries"
-                                Text("• ${ex.name}: $bestText")
-                            }
+                        Spacer(Modifier.height(8.dp))
+
+                        entry.exercisesSnapshot.forEach { ex ->
+                            val exSets = entry.setsSnapshot.filter { it.exerciseId == ex.id }
+                            val best = exSets.maxByOrNull { it.weight }
+                            val bestText = best?.let { "máx ${it.weight}kg x ${it.reps}" } ?: "sem séries"
+                            Text("• ${ex.name}: $bestText")
                         }
                     }
                 }

@@ -1,10 +1,15 @@
 package pt.pc.gymlog.ui.screens.me
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import pt.pc.gymlog.ui.components.AppCard
 import pt.pc.gymlog.viewmodel.GoalUi
 import pt.pc.gymlog.viewmodel.WorkoutViewModel
 
@@ -34,23 +39,41 @@ fun GoalScreen(
         ) {
 
             GoalUi.values().forEach { g ->
-                Card(onClick = { selected = g }) {
+                val isSelected = g == selected
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selected = g },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(g.label, style = MaterialTheme.typography.titleMedium)
-                        RadioButton(
-                            selected = (selected == g),
-                            onClick = { selected = g }
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(g.label, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                if (isSelected) "Selecionado" else "Toque para selecionar",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = "Selecionado")
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = {
@@ -59,7 +82,7 @@ fun GoalScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Salvar")
+                Text("Guardar")
             }
         }
     }

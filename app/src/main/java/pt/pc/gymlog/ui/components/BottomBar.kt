@@ -41,17 +41,18 @@ fun BottomBar(navController: NavHostController) {
 
             // ✅ Faz o tab ficar "selecionado" mesmo quando estás numa sub-página desse tab
             val selected = when (item.route) {
-                Route.Plan ->
-                    currentRoute == Route.Plan.path || currentRoute == Route.Today.path
+                Route.Me -> currentRoute == Route.Me.path ||
+                        currentRoute == Route.Profile.path ||
+                        currentRoute == Route.Settings.path ||
+                        currentRoute == Route.Goal.path ||
+                        currentRoute == Route.Focus.path ||
+                        currentRoute == Route.OneRmSupino.path
 
-                Route.Me ->
-                    currentRoute == Route.Me.path ||
-                            currentRoute == Route.Profile.path ||
-                            currentRoute == Route.Settings.path
+                Route.Customize -> currentRoute == Route.Customize.path ||
+                        (currentRoute?.startsWith("custom_workout/") == true)
 
                 else -> currentRoute == item.route.path
             }
-
             NavigationBarItem(
                 selected = selected,
                 onClick = {

@@ -14,7 +14,10 @@ import pt.pc.gymlog.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExercisesScreen(vm: WorkoutViewModel) {
+fun ExercisesScreen(
+    vm: WorkoutViewModel,
+    onOpenDetail: (Long) -> Unit
+) {
 
     val exercises = vm.exercises
 
@@ -70,23 +73,24 @@ fun ExercisesScreen(vm: WorkoutViewModel) {
                                 modifier = Modifier
                                     .weight(1f)
                                     .clickable {
-                                        editing = ex
-                                        showForm = true
+                                        onOpenDetail(ex.id)
                                     }
                             ) {
                                 Text(ex.name, style = MaterialTheme.typography.titleMedium)
                                 Text(ex.muscleGroup ?: "Sem grupo", style = MaterialTheme.typography.bodyMedium)
                             }
 
-                            TextButton(onClick = {
-                                editing = ex
-                                showForm = true
-                            }) { Text("Editar") }
+                            if (!ex.isSystem) {
+                                TextButton(onClick = {
+                                    editing = ex
+                                    showForm = true
+                                }) { Text("Editar") }
 
-                            TextButton(onClick = {
-                                deleting = ex
-                                showDeleteConfirm = true
-                            }) { Text("Apagar") }
+                                TextButton(onClick = {
+                                    deleting = ex
+                                    showDeleteConfirm = true
+                                }) { Text("Apagar") }
+                            }
                         }
                     }
                 }

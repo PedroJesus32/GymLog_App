@@ -13,6 +13,9 @@ import pt.pc.gymlog.ui.components.BottomBar
 import pt.pc.gymlog.ui.navigation.AppNav
 import pt.pc.gymlog.ui.theme.GymLogTheme
 
+import androidx.compose.runtime.getValue
+import androidx.navigation.compose.currentBackStackEntryAsState
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,10 +23,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             GymLogTheme {
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    bottomBar = { BottomBar(navController) }
+                    bottomBar = {
+                        if (currentRoute != pt.pc.gymlog.ui.navigation.Route.Onboarding.path) {
+                            BottomBar(navController)
+                        }
+                    }
                 ) { paddingValues ->
                     AppNav(
                         navController = navController,

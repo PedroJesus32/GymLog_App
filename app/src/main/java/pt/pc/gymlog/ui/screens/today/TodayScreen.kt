@@ -1,17 +1,33 @@
 package pt.pc.gymlog.ui.screens.today
 
-import pt.pc.gymlog.viewmodel.PlanDayType
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import pt.pc.gymlog.R
+import pt.pc.gymlog.ui.theme.GymElectricBlue
+import pt.pc.gymlog.viewmodel.PlanDayType
 import pt.pc.gymlog.viewmodel.WorkoutViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,16 +39,13 @@ fun TodayScreen(
     vm: WorkoutViewModel,
     day: Int,
     onGoReport: () -> Unit,
-    onBackToPlan: () -> Unit
+    onBackToPlan: () -> Unit,
+    onStartSession: () -> Unit,
+    onOpenDetail: (Long) -> Unit,
+    onEdit: () -> Unit
 ) {
-
-
-
-
     LaunchedEffect(day) {
-        vm.openDay(
-            day = day
-        )
+        vm.openDay(day = day)
     }
 
     val allExercises = vm.exercises
@@ -41,247 +54,319 @@ fun TodayScreen(
 
     val plan = vm.planDays.firstOrNull { it.dayNumber == day }
     val isRestDay = plan?.type == PlanDayType.REST
-    val focusTitle = plan?.title ?: ""
-
-
-    var showPickExercise by remember { mutableStateOf(false) }
-    var showAddSet by remember { mutableStateOf(false) }
-    var addSetExerciseId by remember { mutableStateOf<Long?>(null) }
+    val focusTitle = plan?.title ?: "Treino"
 
     val todayStr = remember {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Treino • Dia $day • $focusTitle") },
-                navigationIcon = {
-                    TextButton(onClick = onBackToPlan) { Text("Voltar") }
-                }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // ... (Header Image and Back Button - Keep these visible or dimmed)
+        // Actually, to mimic the screenshot, we want the "Rest Day" card to appear modal-like.
+        // We will render the standard TodayScreen content BUT if it is a rest day, 
+        // we add a dim overlay and the card ON TOP.
+        
+        // 1. Header Image
+        Image(
+            painter = painterResource(id = R.drawable.workout_header),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .align(Alignment.TopCenter)
+        )
+        
+        // Dark Overlay for Header Text visibility
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .background(Color.Black.copy(alpha = 0.3f))
+        )
+
+        // Back Button
+        IconButton(
+            onClick = onBackToPlan,
+            modifier = Modifier
+                .padding(top = 40.dp, start = 16.dp)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Voltar",
+                tint = Color.White
             )
-        },
-        floatingActionButton = {
-            if (!isRestDay) {
-                FloatingActionButton(onClick = { showPickExercise = true }) { Text("+") }
-            }
         }
-    )
-    { padding ->
 
-        val selectedExercises = allExercises.filter { it.id in selectedExerciseIds }
+        // 2. Content Body (Standard)
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Spacer(modifier = Modifier.height(200.dp)) // Push content down
 
-        if (selectedExercises.isEmpty()) {
-            Column(
+            Surface(
                 modifier = Modifier
-                    .padding(padding)
                     .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+                color = Color.White,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
-                Text("Sem exercícios no treino de hoje.")
-                Spacer(Modifier.height(12.dp))
-                if (isRestDay) {
-                    Button(
-                        onClick = {
-                            vm.unlockNextDay(day)
-                            onBackToPlan()
-                        }
-                    ) {
-                        Text("Terminar dia de descanso")
-                    }
-                } else {
-                    Button(onClick = { showPickExercise = true }) {
-                        Text("Adicionar exercício")
-                    }
-                }
-
-
-
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(selectedExercises, key = { it.id }) { ex ->
-                    Card {
-                        Column(modifier = Modifier.padding(14.dp)) {
-
-                            Text(ex.name, style = MaterialTheme.typography.titleMedium)
-                            Text(ex.muscleGroup ?: "Sem grupo", style = MaterialTheme.typography.bodyMedium)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(onClick = { vm.removeFromToday(day,ex.id) }) {
-                                    Text("Remover")
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    contentPadding = PaddingValues(bottom = 200.dp) // Space for bottom bar
+                ) {
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                             Column {
+                                Text(
+                                    text = "DIA $day",
+                                    style = MaterialTheme.typography.displaySmall.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 32.sp
+                                    ),
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                // Tag
+                                Surface(
+                                    color = Color(0xFFE0E7FF), // Light Blue tint
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = focusTitle,
+                                        color = GymElectricBlue,
+                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
                                 }
                             }
+                            
+                            // Muscle Diagram Placeholder
+                             Image(
+                                painter = painterResource(id = R.drawable.trainer_cr7), 
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                            )
+                        }
+                    }
 
-                            Spacer(Modifier.height(10.dp))
-
-                            val exerciseSets = sets.filter { it.exerciseId == ex.id }
-
-                            if (exerciseSets.isEmpty()) {
-                                Text("Sem séries ainda.")
-                            } else {
-                                exerciseSets.forEach { s ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            "Set ${s.setNumber}: ${s.weight} kg • ${s.reps} reps",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        TextButton(onClick = { vm.deleteSet(day,s.id) }) {
-                                            Text("Apagar")
-                                        }
+                    // ... (Stats rows etc, hide if rest day? The screenshot shows blank)
+                    if (!isRestDay) {
+                         item {
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Equipamento", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Padrão do sistema", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("1RM (Supino)", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("35 kg", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
                                     }
                                 }
                             }
+                        }
 
-                            Spacer(Modifier.height(10.dp))
-
-                            // ✅ ESTE é o botão do card
-                            Button(onClick = {
-                                addSetExerciseId = ex.id
-                                showAddSet = true
-                            }) {
-                                Text("Adicionar série")
+                        item {
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Text(
+                                text = "${vm.todayExerciseIds(day).size} exercícios",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                        
+                         val todayExercises = allExercises.filter { it.id in selectedExerciseIds }
+                         items(todayExercises) { ex ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .clickable { onOpenDetail(ex.id) },
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Thumbnail
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFF5F5F5),
+                                        modifier = Modifier.size(60.dp)
+                                    ) {
+                                        if (ex.imageRes != null) {
+                                             Image(painter = painterResource(ex.imageRes!!), contentDescription = null, contentScale = ContentScale.Crop)
+                                        } else {
+                                             Box(contentAlignment = Alignment.Center) {
+                                                 Text("IMG", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                             }
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    
+                                    Column {
+                                        Text(ex.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                        Text("3 séries x 10 rep.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray) // Placeholder logic
+                                    }
+                                }
                             }
                         }
+                    } else {
+                         // Empty space for Rest Day base
+                         item {
+                             Spacer(modifier = Modifier.height(200.dp))
+                             Text("Dia de descanso.", modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.Gray)
+                         }
                     }
                 }
-
-                // ✅ Botão no fim da lista
-                item {
-                    Spacer(Modifier.height(8.dp))
-
-                    val canFinishWorkout = !isRestDay && sets.isNotEmpty()
-
-                    Button(
-                        onClick = {
-                            // guardar no histórico
-                            vm.saveTodayWorkout(day, todayStr)
-
-                            // desbloquear próximo dia
-                            vm.unlockNextDay(day)
-
-                            // voltar ao plano
-                            onBackToPlan()
-                        },
-                        enabled = canFinishWorkout,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (canFinishWorkout) "Concluir treino" else "Adicionar pelo menos 1 série")
-                    }
-                }
-
             }
-        } //aqui
-    }
+        }
 
-    if (showPickExercise) {
-        AlertDialog(
-            onDismissRequest = { showPickExercise = false },
-            title = { Text("Escolher exercício") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    allExercises.forEach { ex ->
-                        val disabled = ex.id in selectedExerciseIds
-                        Button(
-                            onClick = {
-                                vm.addToToday(day,ex.id)
-                                showPickExercise = false
-                            },
-                            enabled = !disabled,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (disabled) "${ex.name} (já adicionado)" else ex.name)
+        // 3. Bottom Sticky Bar (Only active if NOT rest day)
+        if (!isRestDay) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.White)
+            ) {
+             Surface(
+                shadowElevation = 16.dp,
+                color = Color.White,
+                 modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Button(
+                        onClick = onStartSession,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GymElectricBlue)
+                    ) {
+                        Text("INÍCIO", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        TextButton(onClick = { vm.regenerateTodayWorkout(day) }) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Refazer", color = Color.Black)
+                        }
+                        
+                        TextButton(onClick = onEdit) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Editar", color = Color.Black)
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPickExercise = false }) { Text("Fechar") }
             }
-        )
-    }
-
-    if (showAddSet && addSetExerciseId != null) {
-        AddSetDialog(
-            onDismiss = { showAddSet = false },
-            onSave = { weight, reps ->
-                vm.addSet(day, addSetExerciseId!!, weight, reps)
-                showAddSet = false
-            }
-        )
-    }
-}
-
-@Composable
-private fun AddSetDialog(
-    onDismiss: () -> Unit,
-    onSave: (weight: Double, reps: Int) -> Unit
-) {
-    var weightText by remember { mutableStateOf("0") }
-    var repsText by remember { mutableStateOf("") }
-
-    var weightError by remember { mutableStateOf<String?>(null) }
-    var repsError by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Adicionar série") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = weightText,
-                    onValueChange = { weightText = it },
-                    label = { Text("Peso (kg)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = weightError != null,
-                    supportingText = { if (weightError != null) Text(weightError!!) }
-                )
-                OutlinedTextField(
-                    value = repsText,
-                    onValueChange = { repsText = it },
-                    label = { Text("Repetições *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = repsError != null,
-                    supportingText = { if (repsError != null) Text(repsError!!) }
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                weightError = null
-                repsError = null
-
-                val weight = weightText.replace(",", ".").toDoubleOrNull()
-                val reps = repsText.toIntOrNull()
-
-                if (weight == null || weight < 0) {
-                    weightError = "Peso tem de ser número e ≥ 0."
-                    return@TextButton
-                }
-                if (reps == null || reps <= 0) {
-                    repsError = "Repetições tem de ser número e > 0."
-                    return@TextButton
-                }
-
-                onSave(weight, reps)
-            }) { Text("Guardar") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+          }
         }
-    )
+        
+        // 4. REST DAY OVERLAY
+        if (isRestDay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(enabled = false) {}, // Block clicks
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                 Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .padding(bottom = 16.dp), // Lift up a bit
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color.White
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                         // Close X (Optional, screenshot shows X)
+                         Row(
+                             modifier = Modifier.fillMaxWidth(), 
+                             horizontalArrangement = Arrangement.SpaceBetween,
+                             verticalAlignment = Alignment.Top
+                         ) {
+                             Icon(
+                                 painter = painterResource(R.drawable.ic_launcher_foreground), // Placeholder for Cup
+                                 contentDescription = null,
+                                 modifier = Modifier.size(32.dp),
+                                 tint = Color.Unspecified
+                             )
+                             // Close button for viewing only?
+                             // User requirement: "Acabado" to finish.
+                             // Maybe X just closes overlay? User said "não dá para acabar".
+                             // Let's assume X goes back, and "Acabado" completes.
+                             IconButton(onClick = onBackToPlan, modifier = Modifier.size(24.dp)) {
+                                 Icon(Icons.Default.Close, contentDescription = "Fechar", tint = Color.Gray)
+                             }
+                         }
+                         
+                         Spacer(modifier = Modifier.height(16.dp))
+                         
+                         Text(
+                             text = "Dia de Descanso",
+                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                         )
+                         
+                         Spacer(modifier = Modifier.height(8.dp))
+                         
+                         Text(
+                             text = "O descanso pode recarregar as suas energias para que você obtenha o corpo dos seus sonhos",
+                             style = MaterialTheme.typography.bodyLarge,
+                             color = Color.Gray
+                         )
+                         
+                         Spacer(modifier = Modifier.height(24.dp))
+                         
+                         Button(
+                             onClick = {
+                                 vm.unlockNextDay(day)
+                                 onBackToPlan()
+                             },
+                             modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                             shape = RoundedCornerShape(12.dp),
+                             colors = ButtonDefaults.buttonColors(containerColor = GymElectricBlue)
+                         ) {
+                             Text("Acabado", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                         }
+                    }
+                }
+            }
+        }
+    }
 }

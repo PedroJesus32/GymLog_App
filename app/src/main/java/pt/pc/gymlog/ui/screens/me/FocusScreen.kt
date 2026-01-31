@@ -51,21 +51,28 @@ fun FocusScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
+            Text(
+                "Podes selecionar mais do que uma área. “Todo o corpo” é exclusivo.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
             FlowRow(
                 maxItemsInEachRow = 3,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 FocusAreaUi.values().forEach { area ->
+                    val isSelected = area in selected
+
                     FilterChip(
-                        selected = area in selected,
+                        selected = isSelected,
                         onClick = { toggle(area) },
                         label = { Text(area.label) }
                     )
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
 
             Button(
                 onClick = {
@@ -74,7 +81,7 @@ fun FocusScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("SALVAR")
+                Text("Guardar")
             }
         }
     }

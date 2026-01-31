@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import pt.pc.gymlog.viewmodel.WorkoutViewModel.WeekDayUi
 import pt.pc.gymlog.viewmodel.WorkoutViewModel.UnitSystemUi
 import pt.pc.gymlog.viewmodel.WorkoutViewModel
@@ -32,6 +33,43 @@ fun SettingsScreen(
         }
     }
 
+
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = {
+                Text(
+                    "Reiniciar App?",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    "Tem a certeza que deseja apagar todos os dados e reiniciar o app como se fosse novo? Esta ação não pode ser desfeita.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showResetDialog = false
+                        vm.resetAppData()
+                        onBack() // This will pop back, but since resetAppData sets onboarding=false, AppNav needs to react or we force nav
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Sim, Apagar Tudo", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -133,6 +171,18 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar")
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+            
+            // RESET BUTTON
+            OutlinedButton(
+                onClick = { showResetDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+            ) {
+                Text("Resetar App", fontWeight = FontWeight.Bold)
             }
 
             if (savedSnack) {
